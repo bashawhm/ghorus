@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/xml"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net"
 	"os"
@@ -133,12 +131,6 @@ func main() {
 	flag.Var(&pl, "port", "The port to look for clients on")
 	flag.Parse()
 
-	addr, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
-	broadcaster, err := net.ListenUDP("udp4", addr)
-	if err != nil {
-		panic(err)
-	}
-
 	if len(flag.Args()) <= 0 {
 		fmt.Println("Usage: ./ghorus <iv_file>")
 		return
@@ -149,25 +141,25 @@ func main() {
 		panic(err)
 	}
 	defer xmlFile.Close()
-	var iv Iv
 
-	bytes, err := ioutil.ReadAll(xmlFile)
-	if err != nil {
-		panic(err)
-	}
+	iv := LoadIv(xmlFile)
 
-	err = xml.Unmarshal(bytes, &iv)
-	if err != nil {
-		panic(err)
-	}
 	noteStreams := iv.GetNoteStreams()
 	fmt.Printf("Note Streams: %d\n", len(noteStreams))
+
+	addr, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
+	broadcaster, err := net.ListenUDP("udp4", addr)
+	if err != nil {
+		panic(err)
+	}
 
 	clients := getClients(broadcaster, pl)
 	fmt.Printf("Clients: %d\n", len(clients))
 
-	nsq := FirstNoteStreams(noteStreams)
+	lastToPlay := LastNoteStreams(noteStreams)
+	fmt.Printf("Playtime: %f\n", lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Time+lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Dur)
 
+	nsq := FirstNoteStreams(noteStreams)
 	var wg sync.WaitGroup
 	for i := 0; i < len(clients) && i < len(nsq); i++ {
 		wg.Add(1)

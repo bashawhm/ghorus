@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/xml"
+	"io/ioutil"
+	"os"
 	"sort"
 )
 
@@ -58,6 +60,22 @@ type Iv struct {
 	Streams Streams  `xml:"streams"`
 }
 
+func LoadIv(file *os.File) Iv {
+	var iv Iv
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	err = xml.Unmarshal(bytes, &iv)
+	if err != nil {
+		panic(err)
+	}
+
+	return iv
+}
+
 func (iv Iv) GetNoteStreams() []Stream {
 	var streams []Stream
 	for i := 0; i < len(iv.Streams.Streams); i++ {
@@ -68,22 +86,42 @@ func (iv Iv) GetNoteStreams() []Stream {
 	return streams
 }
 
-type byTime []Stream
+type byFirstTime []Stream
 
-func (ns byTime) Len() int {
+func (ns byFirstTime) Len() int {
 	return len(ns)
 }
 
-func (ns byTime) Swap(i, j int) {
+func (ns byFirstTime) Swap(i, j int) {
 	ns[i], ns[j] = ns[j], ns[i]
 }
 
-func (ns byTime) Less(i, j int) bool {
+func (ns byFirstTime) Less(i, j int) bool {
 	return ns[i].Notes[0].Time < ns[j].Notes[0].Time
 }
 
 func FirstNoteStreams(ns []Stream) []Stream {
 	nsq := ns
-	sort.Sort(byTime(nsq))
+	sort.Sort(byFirstTime(nsq))
+	return nsq
+}
+
+type byLastTime []Stream
+
+func (ns byLastTime) Len() int {
+	return len(ns)
+}
+
+func (ns byLastTime) Swap(i, j int) {
+	ns[i], ns[j] = ns[j], ns[i]
+}
+
+func (ns byLastTime) Less(i, j int) bool {
+	return ns[i].Notes[len(ns[i].Notes)-1].Time+ns[i].Notes[len(ns[i].Notes)-1].Dur > ns[j].Notes[len(ns[j].Notes)-1].Time+ns[j].Notes[len(ns[j].Notes)-1].Dur
+}
+
+func LastNoteStreams(ns []Stream) []Stream {
+	nsq := ns
+	sort.Sort(byLastTime(nsq))
 	return nsq
 }
