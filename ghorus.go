@@ -109,22 +109,21 @@ func floatRaw(f float32) int {
 }
 
 func sendStreamToClient(broadcaster *net.UDPConn, client *net.UDPAddr, noteStream Stream, wg *sync.WaitGroup) {
-	var timePassed time.Duration
+	baseTime := time.Now()
 	for i := 0; i < len(noteStream.Notes); i++ {
-		// fmt.Println(timePassed)
-		time.Sleep((time.Duration(noteStream.Notes[i].Time*1000000)*time.Microsecond - timePassed))
-		timePassed += time.Duration(noteStream.Notes[i].Time*1000000)*time.Microsecond - timePassed
-
 		dur := int(noteStream.Notes[i].Dur)
 		durFranctional := int(int(noteStream.Notes[i].Dur*1000000) % 1000000)
 		pitch := int(440.0 * math.Pow(2.0, float64(noteStream.Notes[i].Pitch-69)/12.0))
 		ampl := floatRaw(noteStream.Notes[i].Ampl)
 
+		for (time.Now().UnixNano() - baseTime.UnixNano()) < int64(noteStream.Notes[i].Time*1000000000) {
+			time.Sleep(time.Duration(noteStream.Notes[i].Time*1000000000)*time.Nanosecond - time.Duration(time.Now().UnixNano()-baseTime.UnixNano()))
+		}
+
 		pkt := Packet{cmd: CMD_PLAY, data: [8]int{dur, durFranctional, pitch, ampl}}
 		broadcaster.WriteToUDP(pkt.serialize(), client)
 
-		time.Sleep(time.Duration(noteStream.Notes[i].Dur*1000000.0) * time.Microsecond)
-		timePassed += time.Duration(noteStream.Notes[i].Dur*1000000.0) * time.Microsecond
+		time.Sleep(time.Duration(int64(noteStream.Notes[i].Dur*1000000000) - (time.Now().UnixNano() - baseTime.UnixNano()) - int64(noteStream.Notes[i].Time*1000000000)))
 	}
 	wg.Done()
 }
