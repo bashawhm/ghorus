@@ -1,6 +1,9 @@
 package main
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"sort"
+)
 
 type Bpm struct {
 	XMLName xml.Name `xml:"bpm"`
@@ -63,4 +66,24 @@ func (iv Iv) GetNoteStreams() []Stream {
 		}
 	}
 	return streams
+}
+
+type byTime []Stream
+
+func (ns byTime) Len() int {
+	return len(ns)
+}
+
+func (ns byTime) Swap(i, j int) {
+	ns[i], ns[j] = ns[j], ns[i]
+}
+
+func (ns byTime) Less(i, j int) bool {
+	return ns[i].Notes[0].Time < ns[j].Notes[0].Time
+}
+
+func FirstNoteStreams(ns []Stream) []Stream {
+	nsq := ns
+	sort.Sort(byTime(nsq))
+	return nsq
 }

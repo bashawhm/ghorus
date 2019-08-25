@@ -111,7 +111,7 @@ func floatRaw(f float32) int {
 func sendStreamToClient(broadcaster *net.UDPConn, client *net.UDPAddr, noteStream Stream, wg *sync.WaitGroup) {
 	var timePassed time.Duration
 	for i := 0; i < len(noteStream.Notes); i++ {
-		fmt.Println(timePassed)
+		// fmt.Println(timePassed)
 		time.Sleep((time.Duration(noteStream.Notes[i].Time*1000000)*time.Microsecond - timePassed))
 		timePassed += time.Duration(noteStream.Notes[i].Time*1000000)*time.Microsecond - timePassed
 
@@ -167,10 +167,12 @@ func main() {
 	clients := getClients(broadcaster, pl)
 	fmt.Printf("Clients: %d\n", len(clients))
 
+	nsq := FirstNoteStreams(noteStreams)
+
 	var wg sync.WaitGroup
-	for i := 0; i < len(clients) && i < len(noteStreams); i++ {
+	for i := 0; i < len(clients) && i < len(nsq); i++ {
 		wg.Add(1)
-		go sendStreamToClient(broadcaster, clients[i], noteStreams[i], &wg)
+		go sendStreamToClient(broadcaster, clients[i], nsq[i], &wg)
 	}
 
 	wg.Wait()
