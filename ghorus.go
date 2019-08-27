@@ -157,13 +157,19 @@ func main() {
 	fmt.Printf("Clients: %d\n", len(clients))
 
 	lastToPlay := LastNoteStreams(noteStreams)
-	fmt.Printf("Playtime: %f\n", lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Time+lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Dur)
+	playTime := lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Time + lastToPlay[0].Notes[len(lastToPlay[0].Notes)-1].Dur
+	fmt.Printf("Playtime: %f\n", playTime)
 
 	nsq := FirstNoteStreams(noteStreams)
 	var wg sync.WaitGroup
 	for i := 0; i < len(clients) && i < len(nsq); i++ {
 		wg.Add(1)
 		go sendStreamToClient(broadcaster, clients[i], nsq[i], &wg)
+	}
+
+	for i := 0; i < int(playTime); i++ {
+		fmt.Printf("\x1b[G\x1b[K[%d]", i)
+		time.Sleep(1 * time.Second)
 	}
 
 	wg.Wait()
