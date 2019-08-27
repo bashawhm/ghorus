@@ -129,7 +129,21 @@ func sendStreamToClient(broadcaster *net.UDPConn, client *net.UDPAddr, noteStrea
 func main() {
 	var pl PortList
 	flag.Var(&pl, "port", "The port to look for clients on")
-	flag.Parse()
+    quit := flag.Bool("quit", false, "Sends quit packet to all clients")
+    flag.Parse()
+
+    if *quit {
+	    addr, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
+    	broadcaster, err := net.ListenUDP("udp4", addr)
+	    if err != nil {
+    		panic(err)
+	    }
+
+	    clients := getClients(broadcaster, pl)
+        pkt := Packet{cmd: CMD_QUIT}
+        sendToAll(broadcaster, clients, pkt)
+    
+    }
 
 	if len(flag.Args()) <= 0 {
 		fmt.Println("Usage: ./ghorus <iv_file>")
